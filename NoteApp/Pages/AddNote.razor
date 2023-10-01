@@ -1,0 +1,66 @@
+﻿@page "/note/add"
+@page "/note/edit/{noteId:int}"
+@using NoteApp.Models
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h1>@Title Note</h1>
+<hr />
+<EditForm Model="@note" OnValidSubmit="SaveNote">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label for="Title" class="form-label">Title</label>
+        <div class="col-md-4">
+            <InputText class="form-control" @bind-Value="note.Title" />
+        </div>
+        <ValidationMessage For="@(() => note.Title)" />
+    </div>
+    <div class="mb-3">
+        <label for="Text" class="form-label">Text</label>
+        <div class="col-md-4">
+            <InputTextArea class="form-control" @bind-Value="note.Text" />
+        </div>
+        <ValidationMessage For="@(() => note.Text)" />
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button class="btn btn-light" @onclick="Cancel">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int noteId { get; set; }                 // Parameter to receive the ID of the note.
+    protected string Title = "Add";                 // Default title for the page.
+    protected Note note = new();                    // A single Note object for editing.
+
+    // Method called when parameters are set.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (noteId != 0)
+        {
+            Title = "Edit";
+            note = await Http.GetFromJsonAsync<Note>("https://localhost:7240/api/note/get/" + noteId);
+        }
+    }
+
+    // Method to save or update a note.
+    protected async Task SaveNote()
+    {
+        if (note.Id != 0)
+        {
+            await Http.PutAsJsonAsync("https://localhost:7240/api/note/put", note);
+        }
+        else
+        {
+            await Http.PostAsJsonAsync("https://localhost:7240/api/note/post", note);
+        }
+        Cancel();
+    }
+
+    // Method to cancel and navigate back to the notes list.
+    public void Cancel()
+    {
+        NavigationManager.NavigateTo("/fetchnotedetails");
+    }
+}

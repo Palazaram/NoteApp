@@ -1,0 +1,161 @@
+﻿@page "/fetchnotedetails"
+@using NoteApp.Models
+@inject HttpClient Http
+
+<div>
+    <div class="header">
+        <div class="header-block-left">
+            <a href='/note/add' class="my-button">New note</a>
+        </div>
+        <div class="header-block-center input-group col">
+            <input type="text" class="form-control" placeholder="Enter search term"
+            @bind="SearchString" @bind:event="oninput" @onkeyup="FilterNote" />
+        </div>
+        <div class="header-block-right">
+            Total notes: @noteList.Count
+        </div>
+    </div>
+
+
+    <main>
+        @if (noteList == null || @noteList.Count == 0)
+        {
+            <p><em>List is empty</em></p>
+        }
+        else
+        {
+            @foreach (var note in noteList)
+            {
+
+                <div class="note">
+                    <div class="top-note">
+
+                        <div class="title">
+                            <span>@note.Title</span>
+                        </div>
+
+
+                        <div class="date">
+                            <span>@GetTimeAgo(note.CreatedAt)</span>
+                        </div>
+
+
+                        <div>
+                            @if (ShowNoteStates.ContainsKey(note.Id) && ShowNoteStates[note.Id])
+                            {
+                                <button class="show-button" @onclick="() => ToggleNote(note.Id)">Hide note</button>
+                            }
+                            else
+                            {
+                                <button class="show-button" @onclick="() => ToggleNote(note.Id)">Show note</button>
+                            }
+
+                            <a href='/note/edit/@note.Id' class="edit-link" role="button">
+                                Edit note
+                            </a>
+                        </div>
+                    </div>
+
+                    <div>
+                        @if (ShowNoteStates.ContainsKey(note.Id) && ShowNoteStates[note.Id])
+                        {
+                            <div class="bottom-note">
+                                <p class="note-text">
+                                    @note.Text
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </main>
+
+    <div class="footer">
+        <div>
+            4Notes: anonymous notes sharing
+        </div>
+    </div>
+</div>
+@code {
+    protected List<Note> noteList = new();          // A list to store notes.
+    protected List<Note> searchNoteData = new();    // A list to store the original unfiltered notes.
+    protected Note note = new();                    // A single Note object.
+    protected string SearchString { get; set; } = string.Empty;                         // A property to store the search string.
+    protected Dictionary<int, bool> ShowNoteStates = new Dictionary<int, bool>();       // A dictionary to track the visibility state of notes.
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetNote();
+    }
+
+    // Method to retrieve notes from a remote API.
+    protected async Task GetNote()
+    {
+        noteList = await Http.GetFromJsonAsync<List<Note>>("https://localhost:7240/api/note/get");
+        searchNoteData = noteList;
+    }
+
+    // Method to filter notes based on the search string.
+    protected void FilterNote()
+    {
+        if (!string.IsNullOrEmpty(SearchString))
+        {
+            // Filter notes based on the search string, ignoring case.
+            noteList = searchNoteData
+                .Where(x => x.Title.IndexOf(SearchString, StringComparison.OrdinalIgnoreCase) != -1)
+                .ToList();
+        }
+        else
+        {
+            noteList = searchNoteData;
+        }
+    }
+
+    // Method to toggle the visibility state of a specific note by its ID.
+    protected void ToggleNote(int noteId)
+    {
+        if (ShowNoteStates.ContainsKey(noteId))
+        {
+            ShowNoteStates[noteId] = !ShowNoteStates[noteId]; // Toggle the visibility state.
+        }
+        else
+        {
+            ShowNoteStates[noteId] = true;
+        }
+    }
+
+    protected string GetTimeAgo(DateTime createdAt)
+    {
+        TimeSpan timeDifference = DateTime.Now - createdAt;
+
+        if (timeDifference.TotalMinutes < 1)
+        {
+            return "less than a minute ago";
+        }
+        else if (timeDifference.TotalHours < 1)
+        {
+            int minutesAgo = (int)timeDifference.TotalMinutes;
+            return $"{minutesAgo} {(minutesAgo == 1 ? "minute" : "minutes")} ago";
+        }
+        else if (timeDifference.TotalDays < 1)
+        {
+            int hoursAgo = (int)timeDifference.TotalHours;
+            return $"{hoursAgo} {(hoursAgo == 1 ? "hour" : "hours")} ago";
+        }
+        else if (timeDifference.TotalDays < 30)
+        {
+            int daysAgo = (int)timeDifference.TotalDays;
+            return $"{daysAgo} {(daysAgo == 1 ? "day" : "days")} ago";
+        }
+        else
+        {
+            int monthsAgo = (int)(timeDifference.TotalDays / 30);
+            return $"{monthsAgo} {(monthsAgo == 1 ? "month" : "months")} ago";
+        }
+    }
+}
