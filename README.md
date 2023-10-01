@@ -7,7 +7,9 @@ Before running the application, please ensure that you have configured the serve
 1. Open the `NoteDetails.razor` and `AddNote.razor` files in the `Pages` folder.
 
 2. Locate the code where the server URL is specified.
-   
+
+# Project architecture
+
 ## Data Model:
 
 In the `Models` folder, you'll find a `Note` model with the following fields:
